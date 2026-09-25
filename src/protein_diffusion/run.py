@@ -1,14 +1,25 @@
-"""Train the DDPM on measured-functional GB1 variants, generate candidates,
-and evaluate them against the landscape oracle vs random draws.
+"""Conditional DDPM over the full GB1 landscape, oracle-evaluated.
 
-Evaluation, all measured not assumed:
-- fitness of generated variants (the oracle answers what the experiment
-  would have returned)
-- fraction unmeasured by the original screen (model can propose variants
-  the landscape lacks — reported, not hidden)
-- memorization: fraction of generated variants that were literally in the
-  training set vs novel high-fitness generalization
-- random baseline: uniform draws from the landscape, replicated over seeds
+v2 design, after the v1 failure (see README debugging trail): the
+unconditional model trained only on fit variants could not produce novel
+fit variants — GB1's functional region is an archipelago (Hamming-1
+neighbors of fit variants measure ~0.087, i.e. dead), so density
+estimation over a sparse fit set has nothing to interpolate toward and
+memorizes instead.
+
+The fix is fitness conditioning + classifier-free guidance, trained on
+the FULL landscape — the model must see the dead variants to learn where
+the boundary is. Evaluation is a steering experiment:
+
+- unconditioned samples should reproduce the landscape distribution
+  (sanity: mean fitness ~ random)
+- samples conditioned on high fitness, with guidance w, should shift
+  toward the functional region — measured against the oracle
+
+Because 93% of the 20^4 space is measured, virtually every decoded
+variant exists in the training data: the honest claim is steering, not
+novelty. Diversity (unique variants, top-hit concentration) is reported
+to show conditioning isn't just replaying the top rows.
 """
 
 import json
@@ -32,7 +43,28 @@ def _stats(fitness: np.ndarray, top_set: set, idx: np.ndarray, train_set: set):
         "frac_ge_1": float(np.mean(fitness >= 1.0)),
         "frac_ge_05": float(np.mean(fitness >= 0.5)),
         "top_hits": int(sum(i in top_set for i in idx)),
-        "n_memorized": int(sum(i in train_set for i in idx)),
+    }
+
+
+def _eval_batch(variants, df_index, fit_map, top_set):
+    gi = np.array([df_index.get(v, -1) for v in variants])
+    meas = gi >= 0
+    gf = np.array(
+        [fit_map[v] if i >= 0 else np.nan for v, i in zip(variants, gi)]
+    )
+    st = _stats(np.nan_to_num(gf, nan=0.0), top_set, gi[meas], set())
+    st["n_unique"] = len(set(variants))
+    st["frac_unmeasured"] = float(1 - meas.mean())
+    return st
+
+
+def _agg(stats_list):
+    keys = [k for k in stats_list[0] if k != "n"]
+    return {
+        **{k: float(np.mean([s[k] for s in stats_list])) for k in
+           ["n", *keys]},
+        **{f"{k}_std": float(np.std([s[k] for s in stats_list]))
+           for k in keys},
     }
 
 
@@ -40,104 +72,71 @@ def main(in_parquet: str, out_json: str, out_model: str):
     cfg = load_config()
     df = pd.read_parquet(in_parquet)
     fit_map = dict(zip(df["variant"], df["fitness"]))
-    train_mask = df["fitness"] >= cfg["dataset"]["train_fitness_min"]
-    train_df = df[train_mask].reset_index(drop=True)
-    # df indices of training rows — NOT train_df.index (those are positions
-    # in the filtered frame); gen_idx below indexes the full df
-    train_set = set(df.index[train_mask].tolist())
-    X = one_hot(train_df["variant"])
+    X = one_hot(df["variant"])
     y_all = df["fitness"].to_numpy()
+    y_cond = np.log1p(y_all)  # heavy-tailed; condition on log enrichment
     top_set = set(np.argsort(-y_all)[: cfg["evaluation"]["top_k"]].tolist())
     df_index = {v: i for i, v in enumerate(df["variant"])}
 
     m = cfg["model"]
     model = train(X, m["timesteps"], m["hidden"], m["lr"], m["epochs"],
-                  m["batch_size"], m["seed"])
+                  m["batch_size"], m["seed"], y=y_cond,
+                  cond_drop=cfg["generate"].get("cond_drop", 0.15))
     import torch
 
     Path(out_model).parent.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), out_model)
 
-    # replicate sampling over seeds: the trained model is fixed, the
-    # ancestral sampling chain is what varies — same honesty standard as
-    # the random baseline
     n_gen = cfg["generate"].get("n_seeds", 1)
-    gen_stats = []
-    per_seed_variants = []
-    for s in range(n_gen):
-        gv = decode(
-            sample(model, cfg["generate"]["n_samples"], X.shape[1],
-                   m["timesteps"], m["seed"] + 31 * s)
-        )
-        gi = np.array([df_index.get(v, -1) for v in gv])
-        meas = gi >= 0
-        gf = np.array(
-            [fit_map[v] if i >= 0 else np.nan for v, i in zip(gv, gi)]
-        )
-        st = {
-            **_stats(np.nan_to_num(gf, nan=0.0), top_set,
-                     gi[meas], train_set),
-            "n_unique": len(set(gv)),
-            "frac_unmeasured": float(1 - meas.mean()),
-        }
-        # the honest split: is elevated fitness real generalization, or
-        # just memorized training rows scoring well again?
-        mem = np.isin(gi, list(train_set)) & meas
-        novel = meas & ~mem
-        st["n_memorized"] = int(mem.sum())
-        st["fitness_mean_memorized"] = float(np.nanmean(gf[mem])) if mem.any() else None
-        st["fitness_mean_novel"] = float(np.nanmean(gf[novel])) if novel.any() else None
-        st["frac_ge_1_novel"] = float(np.mean(gf[novel] >= 1.0)) if novel.any() else None
-        gen_stats.append(st)
-        per_seed_variants.append(gv)
+    cond_val = float(np.log1p(cfg["generate"]["cond_fitness"]))
+    gcfg = cfg["generate"]
 
-    gen_mean = {
-        k: float(np.mean([s[k] for s in gen_stats if s[k] is not None]))
-        for k in gen_stats[0]
-    }
-    gen_std = {
-        f"{k}_std": float(np.std([s[k] for s in gen_stats if s[k] is not None]))
-        for k in gen_stats[0]
-    }
+    sets = {}
+    for label, cond, w in (
+        ("unconditioned", None, 0.0),
+        ("conditioned", cond_val, 0.0),
+        ("guided_w4", cond_val, gcfg.get("guidance_w_low", 4.0)),
+        ("guided_w8", cond_val, gcfg.get("guidance_w", 8.0)),
+    ):
+        stats = []
+        for s in range(n_gen):
+            gv = decode(
+                sample(model, gcfg["n_samples"], X.shape[1],
+                       m["timesteps"], m["seed"] + 31 * s,
+                       cond=cond, guidance=w)
+            )
+            stats.append(_eval_batch(gv, df_index, fit_map, top_set))
+        sets[label] = {**_agg(stats), "per_seed": stats}
+        print(
+            f"{label}: mean fitness {sets[label]['fitness_mean']:.3f} "
+            f"| >=0.5 {sets[label]['frac_ge_05']:.2%} "
+            f"| top-100 hits {sets[label]['top_hits']:.1f}"
+        )
 
     rng_stats = []
     for s in range(cfg["evaluation"]["n_random_seeds"]):
         r = np.random.default_rng(m["seed"] + 100 + s)
-        ri = r.choice(len(df), size=cfg["generate"]["n_samples"], replace=False)
-        rng_stats.append(
-            _stats(y_all[ri], top_set, ri, train_set)
-        )
+        ri = r.choice(len(df), size=gcfg["n_samples"], replace=False)
+        rng_stats.append(_stats(y_all[ri], top_set, ri, set()))
     rand_mean = {k: float(np.mean([s[k] for s in rng_stats]))
                  for k in rng_stats[0]}
 
     result = {
         "config": {
-            "train_fitness_min": cfg["dataset"]["train_fitness_min"],
-            "n_train": int(len(train_df)),
+            "n_train": int(len(df)),
             "timesteps": m["timesteps"],
             "epochs": m["epochs"],
-            "n_samples": cfg["generate"]["n_samples"],
+            "n_samples": gcfg["n_samples"],
+            "cond_fitness": cfg["generate"]["cond_fitness"],
+            "guidance_w": gcfg.get("guidance_w", 2.0),
         },
-        "generated": {
-            "n_seeds": n_gen,
-            "mean": gen_mean,
-            "std": gen_std,
-            "per_seed": gen_stats,
-        },
+        "generated": sets,
         "random": {"n_seeds": len(rng_stats), "mean": rand_mean},
     }
     Path(out_json).parent.mkdir(parents=True, exist_ok=True)
     with open(out_json, "w") as f:
         json.dump(result, f, indent=2, allow_nan=False)
     write_manifest("results/provenance.json", inputs=[in_parquet])
-    print(
-        f"generated ({n_gen} seeds): mean fitness "
-        f"{gen_mean['fitness_mean']:.3f}±{gen_std['fitness_mean_std']:.3f} "
-        f"vs random {rand_mean['fitness_mean']:.3f} | "
-        f"memorized {gen_mean['n_memorized']:.1f}/"
-        f"{gen_mean['n']} | "
-        f"unmeasured {gen_mean['frac_unmeasured']:.2%}"
-    )
 
 
 if __name__ == "__main__":

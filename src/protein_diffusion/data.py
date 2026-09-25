@@ -52,10 +52,9 @@ def main(zip_path: str, out_parquet: str):
     )
     Path(out_parquet).parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_parquet, index=False)
-    n_train = int((df.fitness >= cfg["dataset"]["train_fitness_min"]).sum())
     print(
-        f"landscape: {len(df)} variants | training pool "
-        f"(fitness>={cfg['dataset']['train_fitness_min']}): {n_train}"
+        f"landscape: {len(df)} variants | fitness>={0.5} fraction: "
+        f"{(df.fitness >= 0.5).mean():.3f}"
     )
 
 
