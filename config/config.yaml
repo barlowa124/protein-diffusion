@@ -12,7 +12,7 @@ model:
   timesteps: 300
   hidden: 256
   lr: 0.001
-  epochs: 20        # 149k rows vs 5.8k in v1 — fewer passes needed
+  epochs: 20        # 149k rows vs 5.8k in v1, fewer passes needed
   batch_size: 512
   seed: 7
 
