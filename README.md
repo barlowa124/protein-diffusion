@@ -25,35 +25,59 @@ V39/D40/G41/V54 with experimentally measured enrichment fitness.
   in the *measured* landscape. No surrogate scoring of generated samples —
   the fitness numbers are what the experiment actually returned.
 
-## Result (seed 7, committed in `results/summary.json`)
+## Result (8 sampling seeds, committed in `results/summary.json`)
 
-| | DDPM generated (n=512) | Random landscape draws (20 seeds) |
+| | DDPM generated (n=512/seed) | Random landscape draws (20 seeds) |
 |---|---|---|
-| mean fitness | **1.10** | 0.081 |
-| median fitness | 0.34 | 0.0035 |
-| fraction >= 1.0 | **36%** | 2.5% |
-| fraction >= 0.5 | 46% | 4.1% |
-| true top-100 hits | **11** | 0.3 mean |
-| unique variants | 489/512 (95%) | - |
-| memorized (in training set) | 45/512 (8.8%) | ~4% expected |
-| unmeasured by original screen | 1.0% | - |
+| mean fitness | **1.04 ± 0.06** | 0.081 |
+| median fitness | 0.35 | 0.0035 |
+| fraction >= 1.0 | 36% ± 2% | 2.5% |
+| true top-100 hits | 7.8 ± 2.5 | 0.3 mean |
+| unique variants | ~488/512 | - |
+| **memorized (in training set)** | **238/512 (46%)** | ~4% expected |
+| unmeasured by original screen | 0.9% | - |
 
-Reading it honestly: generation is ~13x enriched over random draws and
-**mostly generalization, not memorization** — 467 of 512 samples are novel
-variants the model never saw, and they still land in the functional region
-far above chance. 5 of 512 samples fell outside the measured set entirely;
-they're counted as zero-fitness wasted experiments rather than dropped.
+And the decomposition that matters — splitting generated samples by
+whether they copy the training set:
+
+| Subset | Fraction of samples | Mean fitness | >= 1.0 |
+|---|---|---|---|
+| memorized training rows | ~46% | 2.15 | drives all the enrichment |
+| **novel variants** | ~54% | **0.082** | **0%** |
+| random landscape draw | — | 0.081 | 2.5% |
+
+The honest headline flipped after a bug fix (see below): **all of the
+model's lift is memorization.** Novel generations — the 54% of samples
+that are real new variants — sit at exactly landscape-random fitness
+(0.082 vs 0.081). A DDPM trained on 5.8k points in an 80-dim space learns
+to reproduce its training set, not the fitness landscape's geometry.
+That's the well-known diffusion-memorization failure mode, measured end
+to end against an oracle rather than assumed away.
+
+## Debugging trail (kept, it's the point)
+
+The first version of this table claimed "mostly generalization, not
+memorization" (8.8% memorized). That was a bug: `train_set` was built
+from positions in the *filtered* training frame while generated variants
+were looked up by *full-frame* index — so a sample was counted memorized
+only when its row index happened to be < 5822. The corrected count is
+46%, and splitting fitness by membership showed the entire enrichment
+came from the memorized half. Any memorization metric is only as good as
+its indexing — worth checking before believing the flattering number.
 
 ## Caveats
 
 - Four-site combinatorial space is small and discrete; this demonstrates
-  generative *mechanics + oracle evaluation*, not full-sequence design.
-- GB1's landscape is smooth enough that a much simpler proposal (mutate
-  high-fitness parents) might do comparably — the honest baseline to add
-  next. The current baseline is uniform random, the minimal counterfactual.
+  generative *mechanics + oracle evaluation + a measured memorization
+  failure*, not de novo design capability.
+- Fix directions, untested: fewer epochs, a larger/noisier training
+  threshold, classifier-free guidance toward fitness, or discrete-state
+  diffusion (D3PM-style) over residues.
+- GB1's landscape is smooth enough that a simpler proposal (mutating
+  high-fitness parents) would likely beat this — uniform random is the
+  minimal counterfactual, not a strong one.
 - DDPM in continuous one-hot space is a modeling convenience; discrete
   diffusion over residues is the more principled formulation.
-- Single seeded run; generation statistics are one trajectory.
 
 ## Run
 

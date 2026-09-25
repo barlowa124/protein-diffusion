@@ -17,6 +17,7 @@ model:
 
 generate:
   n_samples: 512
+  n_seeds: 8          # replicate sampling chains; model is fixed
 
 evaluation:
   n_random_seeds: 20      # random-variant baseline replicates, same n
