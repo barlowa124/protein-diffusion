@@ -29,7 +29,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from protein_diffusion.config import load_config
+from protein_diffusion.config import config_path, load_config
 from protein_diffusion.ddpm import sample, train
 from protein_diffusion.encode import decode, mutate, one_hot
 from protein_diffusion.provenance import write_manifest
@@ -180,7 +180,7 @@ def main(in_parquet: str, out_json: str, out_model: str):
         Path(out_json).parent
         / ("provenance" + Path(out_json).stem.removeprefix("summary") + ".json")
     )
-    write_manifest(str(manifest), inputs=[in_parquet])
+    write_manifest(str(manifest), inputs=[in_parquet], config_path=str(config_path()))
 
 
 if __name__ == "__main__":

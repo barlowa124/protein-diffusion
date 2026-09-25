@@ -6,7 +6,10 @@ from pathlib import Path
 import yaml
 
 
+def config_path() -> Path:
+    return Path(os.environ.get("DIFFUSION_CONFIG", "config/config.yaml"))
+
+
 def load_config() -> dict:
-    path = Path(os.environ.get("DIFFUSION_CONFIG", "config/config.yaml"))
-    with open(path) as f:
+    with open(config_path()) as f:
         return yaml.safe_load(f)

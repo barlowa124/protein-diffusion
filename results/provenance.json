@@ -1,12 +1,12 @@
 {
-  "created_utc": "2026-09-25T16:30:44.537013+00:00",
-  "git": "e8eee5c66f+dirty",
+  "created_utc": "2026-09-25T20:34:33.269954+00:00",
+  "git": "6e47ee268f+dirty",
   "versions": {
     "numpy": "2.0.2",
     "pandas": "2.3.3",
     "torch": "2.8.0"
   },
-  "config_sha256": "662bac3c63b55a27a9e6819295846785f78eac40962bf490ed02921a5152617d",
+  "config_sha256": "45913f8c90f8f2028b0e9278cbca877e1791ac777af930629f19abc019fefd97",
   "inputs": [
     {
       "path": "data/processed/gb1.parquet",
