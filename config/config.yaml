@@ -1,0 +1,23 @@
+# DDPM over the GB1 one-hot space: train on measured high-fitness variants,
+# generate new variants, score them against the measured oracle.
+
+dataset:
+  url: "https://github.com/J-SNACKKB/FLIP/raw/main/splits/gb1/four_mutations_full_data.csv.zip"
+  variant_col: "Variants"
+  fitness_col: "Fitness"
+  train_fitness_min: 0.5   # train only on measured-functional variants (~5.8k)
+
+model:
+  timesteps: 300
+  hidden: 256
+  lr: 0.001
+  epochs: 60
+  batch_size: 256
+  seed: 7
+
+generate:
+  n_samples: 512
+
+evaluation:
+  n_random_seeds: 20      # random-variant baseline replicates, same n
+  top_k: 100

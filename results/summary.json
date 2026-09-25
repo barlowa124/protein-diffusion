@@ -1,0 +1,32 @@
+{
+  "config": {
+    "train_fitness_min": 0.5,
+    "n_train": 5822,
+    "timesteps": 300,
+    "epochs": 60,
+    "n_samples": 512
+  },
+  "generated": {
+    "n": 512,
+    "fitness_mean": 1.0976650386411195,
+    "fitness_median": 0.3406532367435,
+    "frac_ge_1": 0.361328125,
+    "frac_ge_05": 0.4609375,
+    "top_hits": 11,
+    "n_memorized": 45,
+    "n_unique": 489,
+    "frac_unmeasured": 0.009765625
+  },
+  "random": {
+    "n_seeds": 20,
+    "mean": {
+      "n": 512.0,
+      "fitness_mean": 0.0812123654655775,
+      "fitness_median": 0.0034859389486272497,
+      "frac_ge_1": 0.025,
+      "frac_ge_05": 0.04130859375,
+      "top_hits": 0.3,
+      "n_memorized": 20.35
+    }
+  }
+}
