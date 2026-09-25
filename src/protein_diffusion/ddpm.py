@@ -2,7 +2,7 @@
 
 Standard Gaussian diffusion (Ho et al. 2020 parameterization): linear beta
 schedule, epsilon-prediction MLP with sinusoidal timestep embedding,
-ancestral reverse sampling. Deliberately small — the data space is 80 dims.
+ancestral reverse sampling. Small by design: the data space is 80 dims.
 """
 
 import numpy as np

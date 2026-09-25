@@ -1,6 +1,6 @@
 """Fetch the variant/fitness landscape (FLIP mirror) and persist a clean
-parquet — the FULL measured landscape, dead variants included. (v2 trains
-on all of it; v1's fit-only training set is why v1 memorized — see README.)
+parquet: the FULL measured landscape, dead variants included. (v2 trains
+on all of it; v1's fit-only training set is why v1 memorized. See README.)
 """
 
 import sys

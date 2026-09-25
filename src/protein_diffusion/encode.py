@@ -3,7 +3,7 @@
 The DDPM operates on the continuous relaxation of the (n_sites, alphabet)
 one-hot tensor; generation decodes by per-site argmax, which always yields
 a valid variant string by construction. Site count is inferred from the
-data — GB1 is 4x20, AAV's mutated_region is 28x21 (incl. '*' stops).
+data. GB1 is 4x20, AAV's mutated_region is 28x21 (incl. '*' stops).
 """
 
 import numpy as np
@@ -43,7 +43,7 @@ def decode(X: np.ndarray, alphabet: str = AA_ALPHABET) -> list:
 def mutate(variant: str, k: int, rng: np.random.Generator,
            alphabet: str = AA_ALPHABET) -> str:
     """k random substitutions at distinct sites (k is clamped to >=1 by
-    the caller — the baseline tests *novel* mutants of fit parents, not
+    the caller. The baseline tests *novel* mutants of fit parents, not
     parent resampling)."""
     v = list(variant)
     sites = rng.choice(len(v), size=min(k, len(v)), replace=False)

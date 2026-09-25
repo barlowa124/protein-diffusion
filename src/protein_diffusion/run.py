@@ -2,22 +2,22 @@
 
 v2 design, after the v1 failure (see README debugging trail): the
 unconditional model trained only on fit variants could not produce novel
-fit variants — GB1's functional region is an archipelago (Hamming-1
+fit variants. GB1's functional region is an archipelago (Hamming-1
 neighbors of fit variants measure ~0.087, i.e. dead), so density
 estimation over a sparse fit set has nothing to interpolate toward and
 memorizes instead.
 
 The fix is fitness conditioning + classifier-free guidance, trained on
-the FULL landscape — the model must see the dead variants to learn where
+the FULL landscape. The model must see the dead variants to learn where
 the boundary is. Evaluation is a steering experiment:
 
 - unconditioned samples should reproduce the landscape distribution
   (sanity: mean fitness ~ random)
 - samples conditioned on high fitness, with guidance w, should shift
-  toward the functional region — measured against the oracle
+  toward the functional region, measured against the oracle
 
 Because 93% of the 20^4 space is measured, virtually every decoded
-variant exists in the training data: the honest claim is steering, not
+variant exists in the training data: the claim is steering, not
 novelty. Diversity (unique variants, top-hit concentration) is reported
 to show conditioning isn't just replaying the top rows.
 """
@@ -140,7 +140,7 @@ def main(in_parquet: str, out_json: str, out_model: str):
     rand_mean = {k: float(np.mean([s[k] for s in rng_stats]))
                  for k in rng_stats[0]}
 
-    # Mutational baseline — the honest "why diffuse?" counterfactual:
+    # Mutational baseline: the "why diffuse?" counterfactual:
     # sample a fit parent (fitness >= the conditioning target), apply
     # max(1, Poisson(mu)) random substitutions, oracle-score the children.
     # If guidance only replays local neighborhoods, this trivial baseline
