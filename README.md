@@ -109,8 +109,8 @@ extended with `*` stop variants (kept, since they are real dead variants),
 is 38k designed variants inside a ~21^28 region: **100% of generated
 samples are unmeasured**. No decoded string coincides with a measured
 row, so oracle fitness is undefined for them. This is the GB1
-"93% measured" caveat inverted: that caveat was generous cover, and AAV
-shows it's load-bearing.
+"93% measured" caveat inverted. AAV shows the caveat was
+load-bearing.
 
 **Failure 2: the model doesn't even learn the library.** Diagnostics:
 the library is dense (median pairwise Hamming 7, nearest-member distance
@@ -139,7 +139,7 @@ own circularity caveats. Documented, not implemented.
   diffusion (D3PM-style) over residues is the principled formulation.
 - A simpler proposal distribution (sampling the empirical high-fitness
   pool directly) would trivially produce fit variants. The diffusion
-  model earns its keep only when conditioning needs to generalize, which
+  model is justified only when conditioning needs to generalize, which
   this landscape cannot test.
 
 ## Run
