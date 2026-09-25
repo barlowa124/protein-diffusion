@@ -5,6 +5,7 @@ PP = "PYTHONPATH=src"
 rule all:
     input:
         "results/summary.json",
+        "results/summary_aav.json",
 
 
 rule fetch:
@@ -33,3 +34,38 @@ rule run:
         model="data/processed/ddpm.pt",
     shell:
         "{PP} {PY} -m protein_diffusion.run {input} {output.summary} {output.model}"
+
+
+# --- second landscape: AAV2 capsid viability ---
+
+AAV_CFG = "config/config_aav.yaml"
+
+
+rule fetch_aav:
+    output:
+        "data/raw/aav_full.csv.zip",
+    shell:
+        "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -c \""
+        "from protein_diffusion.data import fetch_raw; "
+        "from protein_diffusion.config import load_config; "
+        "fetch_raw(load_config()['dataset']['url'], '{output}')\""
+
+
+rule prepare_aav:
+    input:
+        rules.fetch_aav.output,
+    output:
+        "data/processed/aav.parquet",
+    shell:
+        "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -m protein_diffusion.data {input} {output}"
+
+
+rule run_aav:
+    input:
+        rules.prepare_aav.output,
+    output:
+        summary="results/summary_aav.json",
+        model="data/processed/ddpm_aav.pt",
+    shell:
+        "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -m protein_diffusion.run "
+        "{input} {output.summary} {output.model}"

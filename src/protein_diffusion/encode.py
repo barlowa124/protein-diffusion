@@ -1,24 +1,25 @@
-"""One-hot encode/decode for the 4-site combinatorial variant space.
+"""One-hot encode/decode for combinatorial variant spaces.
 
-The DDPM operates on the continuous relaxation of the (4, 20) one-hot
-tensor; generation decodes by per-site argmax, which always yields a valid
-variant string by construction.
+The DDPM operates on the continuous relaxation of the (n_sites, alphabet)
+one-hot tensor; generation decodes by per-site argmax, which always yields
+a valid variant string by construction. Site count is inferred from the
+data — GB1 is 4x20, AAV's mutated_region is 28x21 (incl. '*' stops).
 """
 
 import numpy as np
 import pandas as pd
 
 AA_ALPHABET = "ACDEFGHIKLMNPQRSTVWY"
-N_SITES = 4
 
 
 def one_hot(variants: pd.Series, alphabet: str = AA_ALPHABET) -> np.ndarray:
-    """(n, n_sites*20) float32 one-hot."""
+    """(n, n_sites*len(alphabet)) float32 one-hot."""
     idx = {aa: i for i, aa in enumerate(alphabet)}
-    X = np.zeros((len(variants), N_SITES * len(alphabet)), dtype=np.float32)
+    n_sites = len(variants.iloc[0])
+    X = np.zeros((len(variants), n_sites * len(alphabet)), dtype=np.float32)
     for i, v in enumerate(variants):
-        if len(v) != N_SITES:
-            raise ValueError(f"variant {v!r} is not {N_SITES} residues")
+        if len(v) != n_sites:
+            raise ValueError(f"inconsistent variant length: {v!r}")
         for site, aa in enumerate(v):
             j = idx.get(aa)
             if j is None:
@@ -28,8 +29,10 @@ def one_hot(variants: pd.Series, alphabet: str = AA_ALPHABET) -> np.ndarray:
 
 
 def decode(X: np.ndarray, alphabet: str = AA_ALPHABET) -> list:
-    """Per-site argmax over the (n, 4, 20) logits -> list of variant strings."""
-    X = np.asarray(X).reshape(-1, N_SITES, len(alphabet))
+    """Per-site argmax over the (n, n_sites, |alphabet|) logits."""
+    X = np.asarray(X)
+    n_sites = X.shape[1] // len(alphabet)
+    X = X.reshape(-1, n_sites, len(alphabet))
     return [
         "".join(alphabet[j] for j in row.argmax(axis=1)) for row in X
     ]

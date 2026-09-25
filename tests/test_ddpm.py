@@ -11,7 +11,9 @@ from protein_diffusion.ddpm import (
     timestep_embedding,
     train,
 )
-from protein_diffusion.encode import AA_ALPHABET, N_SITES, decode, one_hot
+from protein_diffusion.encode import AA_ALPHABET, decode, one_hot
+
+N_SITES = 4
 
 
 def test_schedule_properties():

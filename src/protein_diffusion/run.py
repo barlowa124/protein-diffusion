@@ -68,13 +68,31 @@ def _agg(stats_list):
     }
 
 
+def _cond_transform(y: np.ndarray, transform: str):
+    """Map raw fitness to the conditioning channel.
+
+    The denoiser's null-condition token is -1, so the transformed channel
+    must be >= ~0: log1p suits GB1's nonnegative heavy tail; AAV's
+    log-viability score goes to -11, so it is shifted into the positive
+    range first."""
+    if transform == "log1p":
+        return np.log1p(y), lambda v: np.log1p(v)
+    if transform == "shift_log1p":
+        shift = y.min() - 0.01
+        return np.log1p(y - shift), lambda v: np.log1p(v - shift)
+    raise ValueError(f"unknown transform {transform!r}")
+
+
 def main(in_parquet: str, out_json: str, out_model: str):
     cfg = load_config()
     df = pd.read_parquet(in_parquet)
+    ds = cfg["dataset"]
+    alphabet = ds.get("alphabet", "ACDEFGHIKLMNPQRSTVWY")
     fit_map = dict(zip(df["variant"], df["fitness"]))
-    X = one_hot(df["variant"])
+    X = one_hot(df["variant"], alphabet)
     y_all = df["fitness"].to_numpy()
-    y_cond = np.log1p(y_all)  # heavy-tailed; condition on log enrichment
+    y_cond, to_cond = _cond_transform(
+        y_all, ds.get("transform", "log1p"))
     top_set = set(np.argsort(-y_all)[: cfg["evaluation"]["top_k"]].tolist())
     df_index = {v: i for i, v in enumerate(df["variant"])}
 
@@ -88,7 +106,7 @@ def main(in_parquet: str, out_json: str, out_model: str):
     torch.save(model.state_dict(), out_model)
 
     n_gen = cfg["generate"].get("n_seeds", 1)
-    cond_val = float(np.log1p(cfg["generate"]["cond_fitness"]))
+    cond_val = float(to_cond(cfg["generate"]["cond_fitness"]))
     gcfg = cfg["generate"]
 
     sets = {}
@@ -103,7 +121,8 @@ def main(in_parquet: str, out_json: str, out_model: str):
             gv = decode(
                 sample(model, gcfg["n_samples"], X.shape[1],
                        m["timesteps"], m["seed"] + 31 * s,
-                       cond=cond, guidance=w)
+                       cond=cond, guidance=w),
+                alphabet,
             )
             stats.append(_eval_batch(gv, df_index, fit_map, top_set))
         sets[label] = {**_agg(stats), "per_seed": stats}
@@ -132,7 +151,8 @@ def main(in_parquet: str, out_json: str, out_model: str):
         for s in range(cfg["evaluation"]["n_random_seeds"]):
             r = np.random.default_rng(m["seed"] + 500 + s)
             pv = r.choice(parents, size=gcfg["n_samples"], replace=True)
-            gv = [mutate(v, max(1, r.poisson(mu)), r) for v in pv]
+            gv = [mutate(v, max(1, r.poisson(mu)), r, alphabet)
+                  for v in pv]
             stats.append(_eval_batch(gv, df_index, fit_map, top_set))
         sets[f"mutate_mu{mu:g}"] = {**_agg(stats), "per_seed": stats}
         print(
@@ -156,7 +176,11 @@ def main(in_parquet: str, out_json: str, out_model: str):
     Path(out_json).parent.mkdir(parents=True, exist_ok=True)
     with open(out_json, "w") as f:
         json.dump(result, f, indent=2, allow_nan=False)
-    write_manifest("results/provenance.json", inputs=[in_parquet])
+    manifest = (
+        Path(out_json).parent
+        / ("provenance" + Path(out_json).stem.removeprefix("summary") + ".json")
+    )
+    write_manifest(str(manifest), inputs=[in_parquet])
 
 
 if __name__ == "__main__":

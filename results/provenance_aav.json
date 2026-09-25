@@ -1,0 +1,16 @@
+{
+  "created_utc": "2026-09-25T17:02:53.495149+00:00",
+  "git": "8701e8f535+dirty",
+  "versions": {
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "torch": "2.8.0"
+  },
+  "config_sha256": "662bac3c63b55a27a9e6819295846785f78eac40962bf490ed02921a5152617d",
+  "inputs": [
+    {
+      "path": "data/processed/aav.parquet",
+      "sha256": "cddf084c55dd881635abf6bc6d72d7d7ea0d43be3e552dd6dc522df229a542ec"
+    }
+  ]
+}

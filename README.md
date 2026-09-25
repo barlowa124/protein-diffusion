@@ -5,10 +5,13 @@ and steered toward high fitness with classifier-free guidance — generative
 modeling where "did it work" is answerable from the measured oracle, not
 vibes.
 
-**Status: working demonstration.** Snakemake DAG runs fetch -> train ->
-guided sampling -> oracle evaluation on the GB1 four-site combinatorial
-landscape (Wu et al., eLife 2016, via the FLIP mirror): 149,361 variants
-at sites V39/D40/G41/V54 with experimentally measured enrichment fitness.
+**Status: working demonstration on GB1; documented transfer failure on
+AAV.** Snakemake DAG runs fetch -> train -> guided sampling -> oracle
+evaluation on the GB1 four-site combinatorial landscape (Wu et al., eLife
+2016, via the FLIP mirror): 149,361 variants at sites V39/D40/G41/V54 with
+experimentally measured enrichment fitness. A second-landscape attempt on
+AAV2 capsid viability (Ogden et al., Science 2019) fails for two
+independent, measured reasons — see "Second landscape" below.
 
 ## Design
 
@@ -94,6 +97,36 @@ The deconstruction, measured:
   is not "less memorization"; it is giving the model the *conditioning
   signal* (fitness, over the full landscape including dead variants) and
   the *mechanism* (guidance) to spend probability mass deliberately.
+
+## Second landscape: AAV2, and why it fails twice
+
+Same code, `config/config_aav.yaml`: 28-aa `mutated_region`, alphabet
+extended with `*` stop variants (kept — they are real dead variants),
+`shift_log1p` conditioning for the negative log-viability scores
+(`results/summary_aav.json`).
+
+**Failure 1 — the oracle is vacuous.** GB1 is 93% measured over its
+4-site space, so decoded variants almost always have ground truth. AAV
+is 38k designed variants inside a ~21^28 region: **100% of generated
+samples are unmeasured** — no decoded string coincides with a measured
+row, so oracle fitness is literally undefined for them. This is the GB1
+"93% measured" caveat inverted: that caveat was generous cover, and AAV
+shows it's load-bearing.
+
+**Failure 2 — the model doesn't even learn the library.** Diagnostics:
+the library is dense (median pairwise Hamming 7, nearest-member distance
+2) and per-site conserved (median site entropy 0.87 nats vs 3.0 uniform).
+Yet generated strings sit ~22 substitutions from every measured variant —
+near random-string distance — and match the library's modal residue at
+only 9% of sites (library members: 86%). Scaling the denoiser (512 hidden,
+40 epochs) improves the match to 29% and MSE 0.64→0.29 — undertraining is
+part of it — but the samples remain far off-manifold. Where GB1's
+memorization failure produced *plausible-looking* outputs, AAV produces
+visible noise; neither is a working generator, for different reasons.
+
+What a working version would need: a decoder-aware sampler (projected /
+discrete diffusion) or a learned-fitness proxy for eval — each with its
+own circularity caveats. Documented, not implemented here.
 
 ## Caveats
 
