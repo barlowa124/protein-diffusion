@@ -5,7 +5,7 @@ and steered toward high fitness with classifier-free guidance. Generative
 modeling where "did it work" is answerable from the measured oracle, not
 vibes.
 
-**Status: working demonstration on GB1; documented transfer failure on
+**Status: working demonstration on GB1, documented transfer failure on
 AAV.** Snakemake DAG runs fetch -> train -> guided sampling -> oracle
 evaluation on the GB1 four-site combinatorial landscape (Wu et al., eLife
 2016, via the FLIP mirror): 149,361 variants at sites V39/D40/G41/V54 with
@@ -20,11 +20,11 @@ independent, measured reasons (see "Second landscape").
   is a valid variant string by construction.
 - **Model**: epsilon-prediction DDPM: linear beta schedule (T=300), 2-layer
   MLP denoiser (hidden 256), ancestral sampling. The denoiser takes a
-  fitness condition channel (log1p-scaled); 15% condition dropout during
+  fitness condition channel (log1p-scaled). 15% condition dropout during
   training enables classifier-free guidance:
   `eps = eps_uncond + w * (eps_cond - eps_uncond)`.
 - **Training set**: the full 149k measured landscape, including the dead
-  variants. The v1 fit-only training set is why v1 failed; a model
+  variants. The v1 fit-only training set is why v1 failed. A model
   that never sees dead variants cannot learn where the boundary is.
 - **Evaluation is against the oracle**: generated variants are looked up
   in the *measured* landscape, real experimental fitness, not a surrogate
@@ -135,7 +135,7 @@ own circularity caveats. Documented, not implemented.
   protein the same machinery would need a novelty channel to be useful.
 - Diversity collapse at high guidance is real and reported. A proposal
   engine would sweep w to trade hit-rate against diversity.
-- DDPM in continuous one-hot space is a modeling convenience; discrete
+- DDPM in continuous one-hot space is a modeling convenience. Discrete
   diffusion (D3PM-style) over residues is the principled formulation.
 - A simpler proposal distribution (sampling the empirical high-fitness
   pool directly) would trivially produce fit variants. The diffusion
@@ -156,5 +156,5 @@ intermediates live in `data/processed/` (regenerable, gitignored).
 ## Data
 
 FLIP `splits/gb1/four_mutations_full_data.csv.zip` (CC BY 4.0; extends Wu et
-al., eLife 2016 supplement). Downloaded zip is gitignored; the parsed
+al., eLife 2016 supplement). Downloaded zip is gitignored. The parsed
 parquet is a regenerable intermediate.
