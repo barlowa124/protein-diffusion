@@ -35,6 +35,8 @@ at sites V39/D40/G41/V54 with experimentally measured enrichment fitness.
 | conditioned (w=0) | 0.163 | 7.5% | 5.0% | 1.2 | 509 |
 | **guided w=4** | **1.04** | **47.2%** | 36.1% | 7.6 | 462 |
 | **guided w=8** | **1.69** | **80.4%** | **63.2%** | 6.6 | 237 |
+| mutate parent, mu=1 | 1.28 | 45.3% | 39.1% | **16.8** | **500** |
+| mutate parent, mu=2 | 0.81 | 30.3% | 25.5% | 8.5 | 506 |
 | random draws | 0.081 | 4.1% | 2.5% | 0.3 | — |
 
 The guidance dose-response is the demonstration: conditioning alone shifts
@@ -45,6 +47,30 @@ strong guidance concentrates samples onto fewer modes (unique variants
 510 -> 237, and top-100 hits actually dip from 7.6 to 6.6 as the sampler
 collapses onto "good enough" modes rather than the very best). Diversity
 vs fitness is the classic CFG tradeoff, measured here rather than assumed.
+
+## The mutational baseline — measured, not assumed
+
+`mutate_*` rows are the trivial experimental baseline a diffusion model
+has to justify itself against: draw a parent uniformly from the >=3.0
+fitness pool, apply `max(1, Poisson(mu))` random substitutions, score the
+children. The verdict is nuanced and documented honestly:
+
+- The earlier deconstruction ("Hamming-1 neighbors of fit variants are
+  dead, mean 0.087") held for neighbors of *marginally* fit rows (>=0.5).
+  The **elite peak is locally smoother** — children of >=3.0 parents
+  measure 45% >= 0.5 at mu=1. So no, mutation is not useless here.
+- Guided diffusion still wins on **bulk enrichment**: 80% vs 45% fit rate,
+  1.69 vs 1.28 mean fitness — CFG concentrates mass better than random
+  mutagenesis.
+- But on **discovery metrics the trivial baseline wins**: 500 unique
+  variants and ~17 top-100 hits per 512 samples vs the DDPM's 237 / 6.6.
+  CFG buys hit-rate by spending diversity, and this landscape's elite
+  neighborhood is connected enough that mutagenesis rides it.
+
+The honest claim narrows accordingly: the DDPM demonstrates *conditional
+steering at superior hit-rate*, not superiority over all baselines at
+every objective. A real proposal engine would report this tradeoff — and
+this repo now does.
 
 ## Why v1 failed, and what fixed it
 
@@ -79,9 +105,9 @@ The deconstruction, measured:
   engine would sweep w to trade hit-rate against diversity.
 - DDPM in continuous one-hot space is a modeling convenience; discrete
   diffusion (D3PM-style) over residues is the principled formulation.
-- A simpler proposal distribution (mutating fit parents is useless here —
-  Hamming-1 is dead; sampling the empirical high-fitness pool directly)
-  would trivially produce fit variants — the diffusion model earns its
+- A simpler proposal distribution (sampling the empirical high-fitness
+  pool directly) would trivially produce fit variants — the diffusion
+  model earns its
   keep only when conditioning needs to generalize, which this landscape
   cannot test. Stated plainly.
 

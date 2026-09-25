@@ -72,3 +72,17 @@ def test_train_smoke_returns_eval_model():
         batch_size=16, seed=0,
     )
     assert not model.training
+
+
+def test_mutate_respects_k_and_alphabet():
+    import numpy as np
+    from protein_diffusion.encode import mutate
+
+    rng = np.random.default_rng(0)
+    out = mutate("VDGV", 2, rng)
+    assert len(out) == 4 and all(a in "ACDEFGHIKLMNPQRSTVWY" for a in out)
+    assert sum(a != b for a, b in zip(out, "VDGV")) <= 2
+    # k clamped by caller to >=1 guarantees a different string in
+    # expectation is not asserted (mutation can resample same AA), but
+    # k must not exceed available sites
+    assert sum(a != b for a, b in zip(mutate("VDGV", 8, rng), "VDGV")) <= 4

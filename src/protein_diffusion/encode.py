@@ -33,3 +33,15 @@ def decode(X: np.ndarray, alphabet: str = AA_ALPHABET) -> list:
     return [
         "".join(alphabet[j] for j in row.argmax(axis=1)) for row in X
     ]
+
+
+def mutate(variant: str, k: int, rng: np.random.Generator,
+           alphabet: str = AA_ALPHABET) -> str:
+    """k random substitutions at distinct sites (k is clamped to >=1 by
+    the caller — the baseline tests *novel* mutants of fit parents, not
+    parent resampling)."""
+    v = list(variant)
+    sites = rng.choice(len(v), size=min(k, len(v)), replace=False)
+    for s in sites:
+        v[s] = alphabet[rng.integers(len(alphabet))]
+    return "".join(v)

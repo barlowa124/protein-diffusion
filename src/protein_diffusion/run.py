@@ -31,7 +31,7 @@ import pandas as pd
 
 from protein_diffusion.config import load_config
 from protein_diffusion.ddpm import sample, train
-from protein_diffusion.encode import decode, one_hot
+from protein_diffusion.encode import decode, mutate, one_hot
 from protein_diffusion.provenance import write_manifest
 
 
@@ -120,6 +120,26 @@ def main(in_parquet: str, out_json: str, out_model: str):
         rng_stats.append(_stats(y_all[ri], top_set, ri, set()))
     rand_mean = {k: float(np.mean([s[k] for s in rng_stats]))
                  for k in rng_stats[0]}
+
+    # Mutational baseline — the honest "why diffuse?" counterfactual:
+    # sample a fit parent (fitness >= the conditioning target), apply
+    # max(1, Poisson(mu)) random substitutions, oracle-score the children.
+    # If guidance only replays local neighborhoods, this trivial baseline
+    # should match it; the v1 deconstruction says it can't.
+    parents = df.loc[y_all >= gcfg["cond_fitness"], "variant"].tolist()
+    for mu in gcfg.get("baseline_mu", [1.0, 2.0]):
+        stats = []
+        for s in range(cfg["evaluation"]["n_random_seeds"]):
+            r = np.random.default_rng(m["seed"] + 500 + s)
+            pv = r.choice(parents, size=gcfg["n_samples"], replace=True)
+            gv = [mutate(v, max(1, r.poisson(mu)), r) for v in pv]
+            stats.append(_eval_batch(gv, df_index, fit_map, top_set))
+        sets[f"mutate_mu{mu:g}"] = {**_agg(stats), "per_seed": stats}
+        print(
+            f"mutate_mu{mu:g}: mean fitness "
+            f"{sets[f'mutate_mu{mu:g}']['fitness_mean']:.3f} | >=0.5 "
+            f"{sets[f'mutate_mu{mu:g}']['frac_ge_05']:.2%}"
+        )
 
     result = {
         "config": {
