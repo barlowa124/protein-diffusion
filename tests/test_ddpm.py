@@ -76,6 +76,36 @@ def test_train_smoke_returns_eval_model():
     assert not model.training
 
 
+def test_conditioning_channel_is_wired():
+    # same seed -> same initial noise; if outputs differ, the condition
+    # channel reached the forward pass (not dead code)
+    m = Denoiser(x_dim=N_SITES * len(AA_ALPHABET), hidden=32)
+    un = sample(m, 8, N_SITES * len(AA_ALPHABET), 10, seed=3)
+    co = sample(m, 8, N_SITES * len(AA_ALPHABET), 10, seed=3, cond=1.0)
+    assert not np.array_equal(un, co)
+
+
+def test_guided_sampling_deterministic_and_valid():
+    m = Denoiser(x_dim=N_SITES * len(AA_ALPHABET), hidden=32)
+    s1 = sample(m, 8, N_SITES * len(AA_ALPHABET), 10, seed=5,
+                cond=1.0, guidance=4.0)
+    s2 = sample(m, 8, N_SITES * len(AA_ALPHABET), 10, seed=5,
+                cond=1.0, guidance=4.0)
+    assert np.array_equal(s1, s2)
+    variants = decode(s1)
+    assert all(len(v) == 4 and set(v) <= set(AA_ALPHABET) for v in variants)
+
+
+def test_train_with_conditioning_and_dropout():
+    X = one_hot(pd.Series(["AAAA", "AAAV", "AAVA", "VAAA"] * 16))
+    y = np.log1p(np.linspace(0.1, 2.0, len(X))).astype(np.float32)
+    model = train(
+        X, timesteps=20, hidden=32, lr=1e-3, epochs=2,
+        batch_size=16, seed=0, y=y, cond_drop=0.5,
+    )
+    assert not model.training
+
+
 def test_mutate_respects_k_and_alphabet():
     import numpy as np
     from protein_diffusion.encode import mutate

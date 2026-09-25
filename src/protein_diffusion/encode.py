@@ -15,6 +15,8 @@ AA_ALPHABET = "ACDEFGHIKLMNPQRSTVWY"
 def one_hot(variants: pd.Series, alphabet: str = AA_ALPHABET) -> np.ndarray:
     """(n, n_sites*len(alphabet)) float32 one-hot."""
     idx = {aa: i for i, aa in enumerate(alphabet)}
+    if len(variants) == 0:
+        return np.zeros((0, 0), dtype=np.float32)
     n_sites = len(variants.iloc[0])
     X = np.zeros((len(variants), n_sites * len(alphabet)), dtype=np.float32)
     for i, v in enumerate(variants):

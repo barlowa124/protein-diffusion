@@ -1,9 +1,6 @@
-"""Fetch the GB1 landscape (FLIP mirror of Wu et al., eLife 2016) and split
-the training set: only variants measured above config.train_fitness_min.
-
-The diffusion model learns the *functional* region, not the landscape as a
-whole — the claim under test is that generated variants land in that region
-more often than chance.
+"""Fetch the variant/fitness landscape (FLIP mirror) and persist a clean
+parquet — the FULL measured landscape, dead variants included. (v2 trains
+on all of it; v1's fit-only training set is why v1 memorized — see README.)
 """
 
 import sys
@@ -15,12 +12,17 @@ import pandas as pd
 
 from protein_diffusion.config import load_config
 
+DOWNLOAD_TIMEOUT = 300
+
 
 def fetch_raw(url: str, out_zip: str) -> Path:
     out = Path(out_zip)
     out.parent.mkdir(parents=True, exist_ok=True)
     if not out.exists():
-        urllib.request.urlretrieve(url, out)
+        tmp = out.with_suffix(out.suffix + ".part")
+        with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT) as r:
+            tmp.write_bytes(r.read())
+        tmp.rename(out)  # atomic: no truncated zip reused silently
     return out
 
 
