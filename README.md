@@ -153,6 +153,11 @@ PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
 `results/summary.json`, `results/provenance.json`; the model checkpoint and
 intermediates live in `data/processed/` (regenerable, gitignored).
 
+Trained weights are mirrored on HuggingFace at
+[barlowa/protein-ddpm-landscapes](https://huggingface.co/barlowa/protein-ddpm-landscapes)
+(`gb1/` — the fixed conditional model; `aav2/` — the documented
+underfit failure, kept on purpose).
+
 ## Data
 
 FLIP `splits/gb1/four_mutations_full_data.csv.zip` (CC BY 4.0; extends Wu et
