@@ -105,3 +105,13 @@ rule diagnostics_aav:
     shell:
         "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -m protein_diffusion.diagnostics "
         "{input.data} {input.model} {output}"
+
+rule parity_jax:
+    input:
+        data=rules.prepare.output,
+        model="data/processed/ddpm.pt",
+    output:
+        "results/parity_jax.json",
+    shell:
+        "{PP} {PY} -m protein_diffusion.eval_jax "
+        "{input.data} {input.model} {output}"

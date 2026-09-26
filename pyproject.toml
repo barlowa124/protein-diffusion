@@ -17,6 +17,8 @@ dependencies = [
 serve = ["fastapi>=0.110", "uvicorn>=0.29"]
 # torchrun on py<3.10 needs the importlib_metadata backport for rendezvous
 ddp = ["importlib-metadata; python_version<'3.10'"]
+# Flax port of the denoiser for cross-framework parity (py3.9 ceiling)
+jax = ["jax[cpu]==0.4.30", "flax==0.8.5"]
 
 [build-system]
 requires = ["setuptools>=68"]

@@ -203,6 +203,21 @@ Trained weights are mirrored on HuggingFace at
 (`gb1/` — the fixed conditional model; `gb1-ddp/` — the 2-process DDP
 checkpoint; `aav2/` — the documented underfit failure, kept on purpose).
 
+## Cross-framework parity (JAX/Flax port)
+
+`jax_model.py` reimplements the denoiser in Flax and loads the committed
+torch checkpoint weight-for-weight. `eval_jax.py` then proves the port
+two ways, both committed in `results/parity_jax.json`:
+
+- **Numerical**: epsilon predictions match torch to 3.1e-6 max abs dev,
+  and a full 300-step ancestral trajectory driven by *shared* noise ends
+  2.1e-6 apart. That is fp32 reduction-order scale, not framework drift. The
+  RNG streams differ by design, so the claim is trajectory-level parity
+  under identical noise, not seed-identical sampling.
+- **Oracle**: JAX-sampled guided-w8 variants score through the identical
+  `_eval_batch` path: mean fitness 1.70 vs torch's 1.69, 80.7% vs 80.4%
+  at >=0.5, 0% unmeasured. Same model, same landscape, same band.
+
 ## Data
 
 FLIP `splits/gb1/four_mutations_full_data.csv.zip` (CC BY 4.0; extends Wu et
