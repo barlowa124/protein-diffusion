@@ -21,6 +21,7 @@ from typing import Optional
 import pandas as pd
 import torch
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -28,6 +29,15 @@ from protein_diffusion.ddpm import Denoiser, sample
 from protein_diffusion.encode import decode
 
 app = FastAPI(title="protein-diffusion")
+
+# The web/ variant browser is a local dev client; keep CORS narrow.
+app.add_middleware(CORSMiddleware,
+                   allow_origins=["http://localhost:5173",
+                                  "http://localhost:4173",
+                                  "http://127.0.0.1:5173",
+                                  "http://127.0.0.1:4173"],
+                   allow_methods=["GET", "POST"],
+                   allow_headers=["Content-Type"])
 
 _ckpt = os.environ.get("MODEL_PATH", "data/processed/ddpm.pt")
 _state = {}

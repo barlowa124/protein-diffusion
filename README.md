@@ -195,7 +195,9 @@ MODEL_PATH=data/processed/ddpm.pt \
 flagged `measured` when they exist in the landscape parquet (oracle
 fitness included) or `unmeasured` otherwise. `GET /metrics` exposes
 Prometheus-format counters (requests, samples, measured/unmeasured
-totals, measured fraction). `docker/Dockerfile` builds
+totals, measured fraction). `web/` is a React + TypeScript variant
+browser against `/sample` (committed screenshot shows a real 32-variant
+run at w=4: 100% measured, mean 1.221, best 4.629). `docker/Dockerfile` builds
 the service image. `deploy/k8s.yaml` is a manifest skeleton
 (Deployment + Service + probes) and `deploy/terraform/main.tf` applies
 the same contract via the kubernetes provider
