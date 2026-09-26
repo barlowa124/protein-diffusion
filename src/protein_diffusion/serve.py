@@ -21,7 +21,7 @@ from typing import Optional
 import pandas as pd
 import torch
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from protein_diffusion.ddpm import Denoiser, sample
@@ -31,6 +31,8 @@ app = FastAPI(title="protein-diffusion")
 
 _ckpt = os.environ.get("MODEL_PATH", "data/processed/ddpm.pt")
 _state = {}
+_metrics = {"requests_total": 0, "samples_total": 0,
+            "measured_total": 0, "unmeasured_total": 0}
 
 
 def _load() -> None:
@@ -96,6 +98,23 @@ def sample_variants(req: SampleRequest):
                     "fitness": measured if measured is not None else None,
                     "status": "measured" if measured is not None
                               else "unmeasured"})
-    return {"n": len(out), "measured": sum(o["status"] == "measured"
-                                           for o in out),
-            "variants": out}
+    n_meas = sum(o["status"] == "measured" for o in out)
+    _metrics["requests_total"] += 1
+    _metrics["samples_total"] += len(out)
+    _metrics["measured_total"] += n_meas
+    _metrics["unmeasured_total"] += len(out) - n_meas
+    return {"n": len(out), "measured": n_meas, "variants": out}
+
+
+@app.get("/metrics")
+def metrics() -> PlainTextResponse:
+    """Prometheus text exposition of request counters."""
+    lines = []
+    for name, val in _metrics.items():
+        lines.append(f"# TYPE diffusion_{name} counter")
+        lines.append(f"diffusion_{name} {val}")
+    if _metrics["samples_total"]:
+        frac = _metrics["measured_total"] / _metrics["samples_total"]
+        lines.append("# TYPE diffusion_measured_fraction gauge")
+        lines.append(f"diffusion_measured_fraction {frac:.6f}")
+    return PlainTextResponse("\n".join(lines) + "\n")

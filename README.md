@@ -193,15 +193,21 @@ MODEL_PATH=data/processed/ddpm.pt \
 
 `POST /sample` takes `n`, `seed`, `cond`, `guidance` and returns variants
 flagged `measured` when they exist in the landscape parquet (oracle
-fitness included) or `unmeasured` otherwise. `docker/Dockerfile` builds
+fitness included) or `unmeasured` otherwise. `GET /metrics` exposes
+Prometheus-format counters (requests, samples, measured/unmeasured
+totals, measured fraction). `docker/Dockerfile` builds
 the service image. `deploy/k8s.yaml` is a manifest skeleton
-(Deployment + Service + probes). The manifest is provided, not deployed:
-no cluster was available at authoring time.
+(Deployment + Service + probes) and `deploy/terraform/main.tf` applies
+the same contract via the kubernetes provider
+(image/replicas/namespace parameterized). Both are provided, not
+deployed: no cluster was available at authoring time. A GitHub Actions
+workflow (`.github/workflows/ci.yml`) runs the test suite and a
+`snakemake -n` dry-run on push.
 
 Trained weights are mirrored on HuggingFace at
 [barlowa/protein-ddpm-landscapes](https://huggingface.co/barlowa/protein-ddpm-landscapes)
-(`gb1/` — the fixed conditional model; `gb1-ddp/` — the 2-process DDP
-checkpoint; `aav2/` — the documented underfit failure, kept on purpose).
+(`gb1/` is the fixed conditional model, `gb1-ddp/` is the 2-process DDP
+checkpoint, `aav2/` is the documented underfit failure, kept on purpose).
 
 ## Cross-framework parity (JAX/Flax port)
 

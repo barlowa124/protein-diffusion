@@ -6,6 +6,7 @@ spawning the real entry point (skipped when torch is absent).
 """
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -143,3 +144,12 @@ class TestServe:
         r = client.post("/sample", json={"n": 4, "seed": 2, "cond": 1.5,
                                        "guidance": 4.0})
         assert r.status_code == 200
+
+    def test_metrics_endpoint(self, client):
+        client.post("/sample", json={"n": 4, "seed": 3})
+        body = client.get("/metrics").text
+        assert "diffusion_requests_total" in body
+        assert "diffusion_samples_total" in body
+        assert "diffusion_measured_fraction" in body
+        m = re.search(r"diffusion_requests_total (\d+)", body)
+        assert int(m.group(1)) >= 1
