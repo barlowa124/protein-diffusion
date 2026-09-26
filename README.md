@@ -203,8 +203,8 @@ the service image. `deploy/k8s.yaml` is a manifest skeleton
 the same contract via the kubernetes provider
 (image/replicas/namespace parameterized). Both are provided, not
 deployed: no cluster was available at authoring time. `deploy/sbatch.sh`
-is the matching Slurm job spec (2-task torchrun, gloo, checkpoint eval);
-also authored-not-run since no Slurm scheduler was available. A GitHub
+is the matching Slurm job spec (2-task torchrun, gloo, checkpoint eval).
+Also authored-not-run since no Slurm scheduler was available. A GitHub
 Actions workflow (`.github/workflows/ci.yml`) runs the test suite and a
 `snakemake -n` dry-run on push.
 

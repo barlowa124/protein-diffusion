@@ -17,7 +17,7 @@
 set -euo pipefail
 mkdir -p logs
 
-# gloo backend: this model trains on CPU locally; on a GPU partition
+# gloo backend: this model trains on CPU locally. On a GPU partition,
 # switch to --export=ALL,NCCL_SOCKET_IFNAME=... + backend nccl.
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-4}"
 export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n1)"
