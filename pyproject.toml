@@ -13,6 +13,11 @@ dependencies = [
     "pulp<3",  # snakemake 7.x calls pulp.list_solvers (removed in pulp 3.x)
 ]
 
+[project.optional-dependencies]
+serve = ["fastapi>=0.110", "uvicorn>=0.29"]
+# torchrun on py<3.10 needs the importlib_metadata backport for rendezvous
+ddp = ["importlib-metadata; python_version<'3.10'"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

@@ -69,3 +69,19 @@ rule run_aav:
     shell:
         "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -m protein_diffusion.run "
         "{input} {output.summary} {output.model}"
+
+
+# --- scale-out: real 2-process DDP via torchrun (CPU gloo) ---
+
+DDP_PROC = 2
+
+
+rule train_ddp:
+    input:
+        rules.prepare.output,
+    output:
+        model="data/processed/ddpm_ddp.pt",
+        record="results/train_ddp.json",
+    shell:
+        "{PP} .venv/bin/torchrun --nproc_per_node={DDP_PROC} "
+        "-m protein_diffusion.train_ddp {input} {output.model} {output.record}"

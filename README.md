@@ -153,6 +153,41 @@ PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
 `results/summary.json`, `results/provenance.json`; the model checkpoint and
 intermediates live in `data/processed/` (regenerable, gitignored).
 
+## Scale-out and serving
+
+Distributed training runs through `train_ddp` under `torchrun`:
+
+```bash
+.venv/bin/snakemake train_ddp -j1   # torchrun --nproc_per_node=2
+```
+
+This is a real two-process run: gloo backend on CPU, gradient all-reduce
+every step, deterministic per-epoch index sharding (rank `r` gets
+`perm[r::world]`, so the union of shards is a full permutation), rank 0
+saves the checkpoint and writes `results/train_ddp.json` (world size,
+backend, input hash, loss tail). The committed run trained in 9 s and the
+resulting checkpoint scores in the same band as the single-process model:
+guided w8 mean fitness 1.97, 78% at >=0.5, 100% measured (vs 1.69, 80%,
+100%). Sharding differs from the single-process shuffle, so runs are not
+bit-identical. The band, not the exact trajectory, is the claim.
+`DIFFUSION_DDP_BACKEND=nccl` is the path
+for GPU clusters. NCCL and multi-node are untested here (no GPU on the
+authoring machine).
+
+Sampling is served by `serve.py`:
+
+```bash
+MODEL_PATH=data/processed/ddpm.pt \
+  .venv/bin/uvicorn protein_diffusion.serve:app --port 8000
+```
+
+`POST /sample` takes `n`, `seed`, `cond`, `guidance` and returns variants
+flagged `measured` when they exist in the landscape parquet (oracle
+fitness included) or `unmeasured` otherwise. `docker/Dockerfile` builds
+the service image. `deploy/k8s.yaml` is a manifest skeleton
+(Deployment + Service + probes). The manifest is provided, not deployed:
+no cluster was available at authoring time.
+
 Trained weights are mirrored on HuggingFace at
 [barlowa/protein-ddpm-landscapes](https://huggingface.co/barlowa/protein-ddpm-landscapes)
 (`gb1/` — the fixed conditional model; `aav2/` — the documented
