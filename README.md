@@ -77,8 +77,9 @@ every objective.
 ## Why v1 failed, and what fixed it
 
 (Values in this section were computed against the v1 run at the time; the
-superseded checkpoint is not retained in git. The AAV diagnostics below
-come from the same ad-hoc analysis scripts.)
+superseded checkpoint is not retained in git, so they stay prose. The AAV
+diagnostics below are recomputed and committed in
+`results/diagnostics_aav.json`.)
 
 The first version trained an *unconditional* DDPM on only the ~5.8k
 fitness >= 0.5 variants. It produced 36% fit samples, but a memorization
@@ -116,12 +117,13 @@ row, so oracle fitness is undefined for them. This is the GB1
 "93% measured" caveat inverted. AAV shows the caveat was
 load-bearing.
 
-**Failure 2: the model doesn't even learn the library.** Diagnostics:
-the library is dense (median pairwise Hamming 7, nearest-member distance
-2) and per-site conserved (median site entropy 0.87 nats vs 3.0 uniform).
-Yet generated strings sit ~22 substitutions from every measured variant,
-near random-string distance, and match the library's modal residue at
-only 9% of sites (library members: 86%). Scaling the denoiser (512 hidden,
+**Failure 2: the model doesn't even learn the library.** Diagnostics
+(`results/diagnostics_aav.json`): the library is dense (median pairwise
+Hamming 7, nearest-member distance 2) and per-site conserved (median
+site entropy 0.87 nats vs 3.0 uniform). Yet generated strings sit ~22
+substitutions from every measured variant, near random-string distance,
+and match the library's modal residue at only 9% of sites (7% guided;
+library members: 83.5%). Scaling the denoiser (512 hidden,
 40 epochs) improves the match to 29% and MSE 0.64→0.29, so undertraining is
 part of it, but the samples remain far off-manifold. Where GB1's
 memorization failure produced *plausible-looking* outputs, AAV produces

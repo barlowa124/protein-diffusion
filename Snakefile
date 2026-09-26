@@ -95,3 +95,13 @@ rule eval_ddp:
     shell:
         "{PP} .venv/bin/python -m protein_diffusion.eval_ddp "
         "{input.data} {input.model} {output}"
+
+rule diagnostics_aav:
+    input:
+        data=rules.prepare_aav.output,
+        model=rules.run_aav.output.model,
+    output:
+        "results/diagnostics_aav.json",
+    shell:
+        "DIFFUSION_CONFIG={AAV_CFG} {PP} {PY} -m protein_diffusion.diagnostics "
+        "{input.data} {input.model} {output}"
