@@ -30,16 +30,16 @@ independent, measured reasons (see "Second landscape").
   in the *measured* landscape, real experimental fitness, not a surrogate
   scoring its own outputs.
 
-## Result (8 sampling seeds each, committed in `results/summary.json`)
+## Result (8 sampling seeds per diffusion mode, 20 per random baseline, committed in `results/summary.json`)
 
 | Sampling mode | mean fitness | >= 0.5 | >= 1.0 | top-100 hits | unique/512 |
 |---|---|---|---|---|---|
-| unconditioned | 0.061 | 2.7% | 1.7% | 0.2 | 510 |
-| conditioned (w=0) | 0.163 | 7.5% | 5.0% | 1.2 | 509 |
+| unconditioned | 0.061 | 2.7% | 1.7% | 0.3 | 510 |
+| conditioned (w=0) | 0.163 | 7.5% | 5.0% | 1.3 | 510 |
 | **guided w=4** | **1.04** | **47.2%** | 36.1% | 7.6 | 462 |
-| **guided w=8** | **1.69** | **80.4%** | **63.2%** | 6.6 | 237 |
+| **guided w=8** | **1.69** | **80.4%** | **63.2%** | 6.6 | 238 |
 | mutate parent, mu=1 | 1.28 | 45.3% | 39.1% | **16.8** | **500** |
-| mutate parent, mu=2 | 0.81 | 30.3% | 25.5% | 8.5 | 506 |
+| mutate parent, mu=2 | 0.81 | 30.3% | 25.5% | 8.5 | 507 |
 | random draws | 0.081 | 4.1% | 2.5% | 0.3 | — |
 
 The guidance dose-response is the demonstration: conditioning alone shifts
@@ -75,6 +75,10 @@ steering at superior hit-rate*, not superiority over all baselines at
 every objective.
 
 ## Why v1 failed, and what fixed it
+
+(Values in this section were computed against the v1 run at the time; the
+superseded checkpoint is not retained in git. The AAV diagnostics below
+come from the same ad-hoc analysis scripts.)
 
 The first version trained an *unconditional* DDPM on only the ~5.8k
 fitness >= 0.5 variants. It produced 36% fit samples, but a memorization
@@ -166,10 +170,14 @@ every step, deterministic per-epoch index sharding (rank `r` gets
 `perm[r::world]`, so the union of shards is a full permutation), rank 0
 saves the checkpoint and writes `results/train_ddp.json` (world size,
 backend, input hash, loss tail). The committed run trained in 9 s and the
-resulting checkpoint scores in the same band as the single-process model:
-guided w8 mean fitness 1.97, 78% at >=0.5, 100% measured (vs 1.69, 80%,
-100%). Sharding differs from the single-process shuffle, so runs are not
-bit-identical. The band, not the exact trajectory, is the claim.
+resulting checkpoint is oracle-evaluated through the identical scoring
+path (`eval_ddp.py` -> `results/eval_ddp.json`, 8 seeds): guided w8 mean
+fitness 1.94 vs single-process 1.69, >=0.5 rate 77.8% vs 80.4%, >=1.0
+63.9% vs 63.2%, the same band. It is slightly more diverse (318 vs 238
+unique/512) and lands more top-100 hits (20.6 vs 6.6), consistent with
+rank-sharded minibatching acting as a different sampler trajectory, not
+a defect. Sharding differs from the single-process shuffle, so runs are
+not bit-identical. The band, not the exact trajectory, is the claim.
 `DIFFUSION_DDP_BACKEND=nccl` is the path
 for GPU clusters. NCCL and multi-node are untested here (no GPU on the
 authoring machine).

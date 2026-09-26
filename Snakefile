@@ -85,3 +85,13 @@ rule train_ddp:
     shell:
         "{PP} .venv/bin/torchrun --nproc_per_node={DDP_PROC} "
         "-m protein_diffusion.train_ddp {input} {output.model} {output.record}"
+
+rule eval_ddp:
+    input:
+        data=rules.prepare.output,
+        model="data/processed/ddpm_ddp.pt",
+    output:
+        "results/eval_ddp.json",
+    shell:
+        "{PP} .venv/bin/python -m protein_diffusion.eval_ddp "
+        "{input.data} {input.model} {output}"
