@@ -190,8 +190,8 @@ no cluster was available at authoring time.
 
 Trained weights are mirrored on HuggingFace at
 [barlowa/protein-ddpm-landscapes](https://huggingface.co/barlowa/protein-ddpm-landscapes)
-(`gb1/` — the fixed conditional model; `aav2/` — the documented
-underfit failure, kept on purpose).
+(`gb1/` — the fixed conditional model; `gb1-ddp/` — the 2-process DDP
+checkpoint; `aav2/` — the documented underfit failure, kept on purpose).
 
 ## Data
 
