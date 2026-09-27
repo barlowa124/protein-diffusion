@@ -156,7 +156,7 @@ PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
 ```
 
 `DIFFUSION_CONFIG` env var selects an alternate config. Outputs:
-`results/summary.json`, `results/provenance.json`; the model checkpoint and
+`results/summary.json` and `results/provenance.json`. The model checkpoint and
 intermediates live in `data/processed/` (regenerable, gitignored).
 
 ## Scale-out and serving
@@ -230,6 +230,6 @@ two ways, both committed in `results/parity_jax.json`:
 
 ## Data
 
-FLIP `splits/gb1/four_mutations_full_data.csv.zip` (CC BY 4.0; extends Wu et
+FLIP `splits/gb1/four_mutations_full_data.csv.zip` (CC BY 4.0, extending Wu et
 al., eLife 2016 supplement). Downloaded zip is gitignored. The parsed
 parquet is a regenerable intermediate.
