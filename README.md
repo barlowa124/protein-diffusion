@@ -48,7 +48,7 @@ hard into the functional region. 80% of proposals measure >= 0.5 vs 4%
 at random, ~20x enrichment. The tradeoff is in the last columns:
 strong guidance concentrates samples onto fewer modes (unique variants
 510 -> 237, and top-100 hits dip from 7.6 to 6.6 as the sampler
-collapses onto "good enough" modes instead of the very best). Diversity
+collapses onto "good enough" modes instead of the highest-fitness ones). Diversity
 vs fitness is the classic CFG tradeoff, measured here instead of assumed.
 
 ## The mutational baseline
@@ -93,7 +93,7 @@ The measured deconstruction:
   nearest training point ~2.1 for both memorized and novel), and memorization
   happened at argmax: samples were blurs snapping to the nearest vertex.
 - 90% of novel outputs were Hamming-1 neighbors of training rows. But
-  GB1's functional region is an archipelago: Hamming-1 neighbors of fit
+  GB1's functional region is an archipelago. Hamming-1 neighbors of fit
   variants measure 0.087 mean and **0% are >= 0.5**. Near-copy sampling is
   worthless on a landscape this sharp.
 - Conclusion: an unconditional density model over a sparse fit set cannot
@@ -113,8 +113,8 @@ extended with `*` stop variants (kept, since they are real dead variants),
 4-site space, so decoded variants almost always have ground truth. AAV
 is 38k designed variants inside a ~21^28 region: **100% of generated
 samples are unmeasured**. No decoded string coincides with a measured
-row, so oracle fitness is undefined for them. This is the GB1
-"93% measured" caveat inverted. AAV shows the caveat was
+row, so oracle fitness is undefined for them. The GB1
+"93% measured" caveat, inverted. AAV shows the caveat was
 load-bearing.
 
 **Failure 2: the model doesn't even learn the library.** Diagnostics
@@ -175,7 +175,7 @@ backend, input hash, loss tail). The committed run trained in 9 s and the
 resulting checkpoint is oracle-evaluated through the identical scoring
 path (`eval_ddp.py` -> `results/eval_ddp.json`, 8 seeds): guided w8 mean
 fitness 1.94 vs single-process 1.69, >=0.5 rate 77.8% vs 80.4%, >=1.0
-63.9% vs 63.2%, the same band. It is slightly more diverse (318 vs 238
+63.9% vs 63.2%, the same band. It is more diverse (318 vs 238
 unique/512) and lands more top-100 hits (20.6 vs 6.6), consistent with
 rank-sharded minibatching acting as a different sampler trajectory, not
 a defect. Sharding differs from the single-process shuffle, so runs are
