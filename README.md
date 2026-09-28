@@ -237,4 +237,3 @@ parquet is a regenerable intermediate.
 ## Related work
 
 - [active-learning-loop](https://github.com/barlowa124/active-learning-loop) uses the same GB1 measured landscape as its acquisition oracle, so the enrichment and generation-steering numbers are comparable across the two repos.
-- [protein-design-ops](https://github.com/barlowa124/protein-design-ops) and [dti-fusion](https://github.com/barlowa124/dti-fusion) share the ESM-2 embedding stack used for variant rescoring here.
