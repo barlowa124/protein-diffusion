@@ -1,3 +1,7 @@
+> **This repository has moved.** Active development continues in [barlowa124/protein-ml](https://github.com/barlowa124/protein-ml) under [`protein_diffusion/`](https://github.com/barlowa124/protein-ml/tree/main/protein_diffusion). This repo is archived and kept for link stability.
+
+---
+
 # protein-diffusion
 
 A **conditional DDPM** trained on the full measured GB1 fitness landscape
